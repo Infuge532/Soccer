@@ -7,6 +7,7 @@ struct KeeperPlanApp: App {
 
     init() {
         Reminders.setUp()
+        Appearance.apply()
     }
 
     var body: some Scene {
@@ -75,12 +76,15 @@ struct KeeperPlanApp: App {
 }
 
 enum Theme {
-    static let accent = Color(red: 0.74, green: 0.93, blue: 0.22)
-    static let background = Color(red: 0.04, green: 0.06, blue: 0.05)
-    static let card = Color.white.opacity(0.07)
-    static let cardStrong = Color.white.opacity(0.12)
+    static let accent = Color(red: 0.8, green: 0.95, blue: 0.36)
+    static let background = Color(red: 0.045, green: 0.05, blue: 0.05)
+    static let card = Color(red: 0.1, green: 0.106, blue: 0.106)
+    static let cardStrong = Color(red: 0.15, green: 0.16, blue: 0.16)
+    static let line = Color.white.opacity(0.08)
+    static let muted = Color(white: 0.62)
 }
 
+/// A plain dark surface. Use `Panel` for a section with a lime title.
 struct Card<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -88,7 +92,8 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) { content }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Theme.line, lineWidth: 1))
     }
 }
 
@@ -97,12 +102,15 @@ struct BigButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(.headline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 18)
             .foregroundStyle(filled ? Color.black : Color.white)
             .background(filled ? Theme.accent : Theme.cardStrong,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+                        in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(filled ? .clear : Theme.line, lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(.snappy(duration: 0.15), value: configuration.isPressed)
     }
 }

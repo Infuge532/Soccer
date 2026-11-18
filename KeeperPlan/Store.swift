@@ -50,6 +50,8 @@ struct AppData: Codable {
     /// Pathway (every position). Optional so older saved data still decodes.
     var profile: PlayerProfile?
     var pathwaySessions: [PathwaySession]?
+    /// Measured results (sprint times, lifts, jumps) that set card stats.
+    var tests: [TestEntry]?
 }
 
 final class Store: ObservableObject {

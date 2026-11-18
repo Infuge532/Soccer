@@ -17,7 +17,8 @@ A SwiftUI iPhone app for a youth goalkeeper training at home. **There is no sche
 - **Focuses** (`Focus` in `Drills.swift`): diving, handling, shot stopping, distribution, footwork, crosses & high balls, 1v1s, reactions, positioning, power.
 - **Setup toggles** (`Need` / `Setup`): Outside, Goal, Partner, Wall. A drill is shown only if every one of its `needs` is switched on.
 - Tabs: **Home**, **Positions**, **Selective**, **Keeper** (the original Train screen), **Progress**. Reminders and settings, plus the player profile, open from the profile button on Home.
-- Dark theme only. The accent is lime green (`Theme` in `KeeperPlanApp.swift`).
+- Dark theme only. The accent is lime green (`Theme` in `KeeperPlanApp.swift`). Headings use the condensed display font (`Font.display`) and sections use `Panel` from `Design.swift`.
+- **Player card:** each stat starts from the player's latest test results (or 50 plus a little for their level). Training adds at most a quarter of the gap to 99, slowly, on purpose. Retired tests stay in the `StatTest` enum so old saved results still decode; only `StatTest.active` is shown and scored.
 
 ## Pathway (every position)
 
@@ -64,6 +65,9 @@ Debug launch arguments: `-seedProfile` fills in a sample player, and `-tab <n>` 
 | `Reminders.swift`, `RemindersView.swift` | Training-time notifications and the Settings tab |
 | `Alarms.swift` | Real alarms through AlarmKit (iOS 26.1+ only, behind `@available`) |
 | `WorkoutSupport.swift` | Voice callouts, video clips, the demo area |
+| `Design.swift` | The look: condensed display font, `Panel` (notched section), stadium backdrop (uses an asset named `Stadium` if one exists), buttons and pills |
+| `PlayerCard.swift` | The player card: six stats + overall, tiers (bronze/silver/gold/elite), how ratings are worked out, the card screen |
+| `StatTests.swift` | Real test results (sprints, jumps, lifts) that set card stats, age-adjusted benchmark ladders, and the test entry screens |
 | `../KeeperWidget/KeeperWidget.swift` | Home-screen widget showing days trained and today's focus |
 
 ## Common changes

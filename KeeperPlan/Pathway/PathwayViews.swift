@@ -4,6 +4,8 @@ enum PathRoute: Hashable {
     case drill(String)
     case position(Position)
     case touches
+    case card
+    case tests
 }
 
 extension View {
@@ -14,6 +16,8 @@ extension View {
                 if let d = PathwayLibrary.drill(id) { PathwayDrillView(drill: d) }
             case .position(let p): PositionDetailView(position: p)
             case .touches: TouchesPackView()
+            case .card: PlayerCardScreen()
+            case .tests: StatTestsView()
             }
         }
     }
@@ -25,7 +29,7 @@ struct Kicker: View {
     let text: String
     var color: Color = Theme.accent
     var body: some View {
-        Text(text.uppercased()).font(.caption.weight(.bold).monospaced()).foregroundStyle(color).tracking(1)
+        Text(text.uppercased()).font(.display(15, .bold)).foregroundStyle(color).tracking(1.2)
     }
 }
 
@@ -34,7 +38,7 @@ struct ShirtBadge: View {
     var big = false
     var body: some View {
         Text(text)
-            .font(.system(size: big ? 34 : 15, weight: .black, design: .rounded))
+            .font(.display(big ? 38 : 17))
             .foregroundStyle(.black)
             .padding(.horizontal, big ? 18 : 9)
             .padding(.vertical, big ? 12 : 5)
@@ -71,14 +75,7 @@ struct PathwayHomeView: View {
                 if let p = store.profile { dashboard(p) } else { ContentUnavailableView("No profile yet", systemImage: "person.crop.circle") }
             }
             .background(Theme.background)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button { showProfile = true } label: { Label("Player profile", systemImage: "person.crop.circle") }
-                        Button { showSettings = true } label: { Label("Reminders & settings", systemImage: "gearshape") }
-                    } label: { Image(systemName: "person.crop.circle").font(.title3) }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showProfile) { ProfileView() }
             .sheet(isPresented: $showSettings) { RemindersView() }
             .pathwayDestinations()
@@ -86,143 +83,211 @@ struct PathwayHomeView: View {
     }
 
     private func dashboard(_ p: PlayerProfile) -> some View {
-        let main = p.mainPosition
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                hero(p)
+                HStack(alignment: .top, spacing: 12) {
+                    NavigationLink(value: PathRoute.card) {
+                        PlayerCard(name: p.firstName, ratings: store.cardRatings(for: p), width: 156)
+                    }
+                    .buttonStyle(.plain)
+                    status
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, -96)
+                recentDays
+                today(p)
+                explore(p)
+                pathway(p).padding(.horizontal, 20)
+                if !store.pathwaySessions.isEmpty { recent.padding(.horizontal, 20) }
+            }
+            .padding(.bottom, 30)
+        }
+        .ignoresSafeArea(edges: .top)
+    }
+
+    // MARK: Hero
+
+    private func hero(_ p: PlayerProfile) -> some View {
+        ZStack(alignment: .top) {
+            StadiumBackdrop(fade: 0.45).frame(height: 360)
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Hi, \(p.firstName)").font(.system(size: 30, weight: .semibold))
+                    HStack(spacing: 5) {
+                        Image(systemName: "mappin.circle.fill").foregroundStyle(Theme.accent)
+                        Text("\(p.age) · \(p.region) region")
+                    }
+                    .font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                }
+                Spacer()
+                CircleIconButton(symbol: "bell", label: "Reminders and settings") { showSettings = true }
+                CircleIconButton(symbol: "person", dot: true, label: "Player profile") { showProfile = true }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 68)
+        }
+    }
+
+    // MARK: Status
+
+    private var status: some View {
+        Panel(title: "My status", spacing: 2) {
+            StatusRow(label: "Days trained", value: "\(store.allTrainingDays.count)")
+            StatusRow(label: "Streak", value: "\(store.overallStreak)")
+            StatusRow(label: "Sessions", value: "\(store.pathwaySessions.filter(\.completed).count + store.totalDrills)")
+            StatusRow(label: "Minutes", value: "\(store.pathwayMinutes)")
+            StatusRow(label: "Best catches", value: "\(store.bestCatchStreak)")
+        }
+    }
+
+    /// The last five days, looking back only. A lime dot marks a day you trained.
+    private var recentDays: some View {
+        let cal = Calendar.current
+        let days = (0..<5).reversed().compactMap { cal.date(byAdding: .day, value: -$0, to: Date()) }
+        return HStack(spacing: 0) {
+            ForEach(days, id: \.self) { d in
+                let isToday = cal.isDateInToday(d)
+                VStack(spacing: 3) {
+                    Text(d.formatted(.dateTime.day())).font(.display(30, .bold)).monospacedDigit()
+                    Text(d.formatted(.dateTime.weekday(.abbreviated))).font(.footnote).foregroundStyle(isToday ? .white : Theme.muted)
+                    Circle().fill(store.trainedAnything(d) ? Theme.accent : Color.white.opacity(0.12)).frame(width: 6, height: 6)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background {
+                    if isToday { NotchedPanelShape(radius: 16, tab: 0.5, drop: 6).fill(Theme.card).overlay(NotchedPanelShape(radius: 16, tab: 0.5, drop: 6).stroke(Theme.line)) }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(d.formatted(.dateTime.weekday(.wide).day()) + (store.trainedAnything(d) ? ", trained" : ""))
+            }
+        }
+        .padding(.horizontal, 14)
+    }
+
+    // MARK: Today
+
+    private func today(_ p: PlayerProfile) -> some View {
         let plan = store.todaysPlan(for: p)
         let next = plan.first { !store.pathwayDoneToday($0.drill.id) }
         let total = plan.reduce(0) { $0 + $1.drill.minutes }
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Kicker(text: "\(greeting) · \(p.age) · \(p.region)")
-                    HStack(alignment: .bottom) {
-                        Text(p.firstName.uppercased()).font(.system(size: 52, weight: .black, design: .rounded)).lineLimit(1).minimumScaleFactor(0.5)
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 0) {
-                            Text("\(store.pathwayStreak)").font(.title.weight(.bold).monospacedDigit())
-                            Text("day streak").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    HStack(spacing: 10) {
-                        ShirtBadge(text: main.info.short)
-                        Text([p.primary, p.secondary, p.third].compactMap { Spot.find($0)?.label }.joined(separator: " / "))
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                    }
-                }
-
-                // Today
-                VStack(alignment: .leading, spacing: 14) {
-                    Kicker(text: "Today · " + Date().formatted(.dateTime.weekday(.wide).month().day()), color: gold)
-                    Text("This is what you're working on today").font(.title2.weight(.bold))
-                    Text("\(p.focusSkills.map(\.name).joined(separator: " · ")) — about \(total) min")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    VStack(spacing: 0) {
-                        ForEach(Array(plan.enumerated()), id: \.element.id) { i, item in
-                            NavigationLink(value: PathRoute.drill(item.drill.id)) {
-                                HStack(spacing: 12) {
-                                    Text(String(format: "%02d", i + 1)).font(.footnote.weight(.bold).monospaced()).foregroundStyle(gold)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.role.uppercased()).font(.caption2.weight(.semibold).monospaced()).foregroundStyle(.secondary)
-                                        Text(item.drill.name).font(.headline)
-                                            .strikethrough(store.pathwayDoneToday(item.drill.id))
-                                            .opacity(store.pathwayDoneToday(item.drill.id) ? 0.5 : 1)
-                                    }
-                                    Spacer()
-                                    if store.pathwayDoneToday(item.drill.id) {
-                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent)
-                                    } else {
-                                        Text("\(item.drill.minutes) min").font(.caption.monospaced()).foregroundStyle(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 12)
-                                .contentShape(Rectangle())
+        let codes = statCodes(p)
+        return Panel(title: "Today's drills") {
+            Text("Built around \(p.focusSkills.map(\.short).joined(separator: ", ").lowercased()). About \(total) min, or pick anything else.")
+                .font(.subheadline).foregroundStyle(Theme.muted)
+            VStack(spacing: 0) {
+                ForEach(Array(plan.enumerated()), id: \.element.id) { i, item in
+                    let done = store.pathwayDoneToday(item.drill.id)
+                    NavigationLink(value: PathRoute.drill(item.drill.id)) {
+                        HStack(spacing: 12) {
+                            Text(codes(item.drill))
+                                .font(.display(15, .bold))
+                                .frame(width: 42, height: 42)
+                                .background(Circle().fill(i == 0 ? Theme.cardStrong : Theme.accent))
+                                .foregroundStyle(i == 0 ? .white : .black)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.drill.name).font(.body.weight(.medium))
+                                    .strikethrough(done).opacity(done ? 0.5 : 1)
+                                Text("\(item.role) · \(item.drill.minutes) min").font(.caption).foregroundStyle(Theme.muted)
                             }
-                            .buttonStyle(.plain)
-                            if i < plan.count - 1 { Divider() }
+                            Spacer()
+                            Image(systemName: done ? "checkmark.circle.fill" : "arrow.right")
+                                .foregroundStyle(done ? Theme.accent : .white)
                         }
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
                     }
-                    if let next {
-                        NavigationLink(value: PathRoute.drill(next.drill.id)) {
-                            Text(plan.first?.id == next.id ? "Start today" : "Next: \(next.drill.name)")
-                        }
-                        .buttonStyle(BigButtonStyle())
-                    } else {
-                        Label("Done for today", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(Theme.accent)
-                    }
-                }
-                .padding(18)
-                .background(Color(red: 0.08, green: 0.2, blue: 0.14), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-                // Quick picks
-                VStack(alignment: .leading, spacing: 10) {
-                    Kicker(text: "Or pick something else")
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        quick(main == .gk ? "Keeper handling & feet" : "\(main.info.group == .wide ? "Wing" : main.info.group.rawValue) training & touches",
-                              "First touch & ball mastery", .touches)
-                        quick("Full \(main.info.short) library", "\(PathwayLibrary.drills(for: main).count) drills", .position(main))
-                        if let second = p.secondPosition, second != main {
-                            quick("Second position: \(second.info.short)", Spot.find(p.secondary)?.label ?? "", .position(second))
-                        }
-                    }
-                }
-
-                pathway(p)
-
-                if !store.pathwaySessions.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Kicker(text: "Recent sessions")
-                        ForEach(store.pathwaySessions.prefix(5)) { s in
-                            HStack {
-                                Text(s.date.formatted(.dateTime.month(.abbreviated).day())).font(.caption.monospaced()).foregroundStyle(.secondary).frame(width: 52, alignment: .leading)
-                                Text(PathwayLibrary.drill(s.drillID)?.name ?? s.drillID).font(.subheadline)
-                                Spacer()
-                                Text((s.reps > 0 ? "\(s.reps) reps" : "\(s.seconds / 60) min") + (s.camera ? " · 📹" : "") + (s.flags > 0 ? " · \(s.flags) flags" : ""))
-                                    .font(.caption.monospaced()).foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
+                    .buttonStyle(.plain)
+                    if i < plan.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
                 }
             }
-            .padding(20)
+            if let next {
+                NavigationLink(value: PathRoute.drill(next.drill.id)) {
+                    Text(plan.first?.id == next.id ? "Start today" : "Next: \(next.drill.name)")
+                }
+                .buttonStyle(BigButtonStyle())
+            } else {
+                Label("Done for today", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(Theme.accent)
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    /// Which card stat a drill builds, for the tag beside it.
+    private func statCodes(_ p: PlayerProfile) -> (PathwayDrill) -> String {
+        let keeper = p.mainPosition == .gk
+        return { d in
+            guard let skill = d.skills.first else { return "GO" }
+            switch skill {
+            case .gkDiving: return "DIV"
+            case .gkHandling, .gkCrosses: return "HAN"
+            case .gkDistribution: return "DIS"
+            case .gk1v1: return "POS"
+            case .gkFootwork: return "FTW"
+            case .agility: return keeper ? "FTW" : "PAC"
+            case .speedDribble, .recovery: return "PAC"
+            case .finishing, .weakFoot: return "SHO"
+            case .passing, .rangePass, .crossing, .scanning: return keeper ? "REF" : "PAS"
+            case .ballMastery, .firstTouch, .turning, .dribbling: return "DRI"
+            case .defending1v1, .positioning, .marking, .pressing: return "DEF"
+            default: return "PHY"
+            }
         }
     }
 
-    private func quick(_ title: String, _ sub: String, _ route: PathRoute) -> some View {
-        NavigationLink(value: route) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.subheadline.weight(.bold)).multilineTextAlignment(.leading)
-                Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+    // MARK: Explore
+
+    private func explore(_ p: PlayerProfile) -> some View {
+        let main = p.mainPosition
+        return VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(text: "Explore").padding(.horizontal, 20)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    NavigationLink(value: PathRoute.position(main)) {
+                        IconPill(symbol: "list.bullet", title: "\(main.info.short) library", count: PathwayLibrary.drills(for: main).count)
+                    }
+                    NavigationLink(value: PathRoute.touches) {
+                        IconPill(symbol: "soccerball", title: main == .gk ? "Handling & feet" : "Touches")
+                    }
+                    if let second = p.secondPosition, second != main {
+                        NavigationLink(value: PathRoute.position(second)) {
+                            IconPill(symbol: "arrow.triangle.swap", title: "2nd: \(second.info.short)", count: PathwayLibrary.drills(for: second).count)
+                        }
+                    }
+                    NavigationLink(value: PathRoute.tests) { IconPill(symbol: "stopwatch", title: "Test your stats") }
+                    NavigationLink(value: PathRoute.card) { IconPill(symbol: "rectangle.portrait.fill", title: "My card") }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
             }
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
-            .padding(14)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(.plain)
     }
+
+    // MARK: Pathway
 
     private func pathway(_ p: PlayerProfile) -> some View {
         let main = p.mainPosition
         let steps = p.goal.rank - p.current.rank
-        return Card {
-            Kicker(text: "Your pathway")
+        return Panel(title: "Your pathway") {
             Text("\(p.current.name)\(p.team.isEmpty ? "" : " (\(p.team))") → \(p.goal.name)")
                 .font(.headline)
             if steps > 0 {
-                Text("\(steps) step\(steps == 1 ? "" : "s") up the ladder. By U16 most MLS NEXT academy rosters are set and new players mostly come through scouting — the habits below need to show up in games, not just drills.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                Text("\(steps) step\(steps == 1 ? "" : "s") up the ladder. By U16 most MLS NEXT academy rosters are set and new players mostly come through scouting. The habits below need to show up in games, not just drills.")
+                    .font(.footnote).foregroundStyle(Theme.muted)
             }
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 ForEach(Level.allCases.reversed()) { l in
+                    let between = l.rank > p.current.rank && l.rank < p.goal.rank
                     HStack {
                         Text(l.name).font(.caption.weight(.semibold))
                         Spacer()
-                        if l == p.current { Text("YOU").font(.caption2.bold().monospaced()) }
-                        if l == p.goal { Text("GOAL").font(.caption2.bold().monospaced()) }
+                        if l == p.current { Text("YOU").font(.display(13, .bold)) }
+                        if l == p.goal { Text("GOAL").font(.display(13, .bold)) }
                     }
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .foregroundStyle(l == p.goal ? .black : (l == p.current ? .black : (l.rank > p.current.rank && l.rank < p.goal.rank ? .white : .secondary)))
-                    .background(l == p.goal ? Theme.accent : (l == p.current ? .white : (l.rank > p.current.rank && l.rank < p.goal.rank ? Theme.cardStrong : .clear)),
-                                in: RoundedRectangle(cornerRadius: 6))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .foregroundStyle(l == p.goal || l == p.current ? .black : (between ? .white : Theme.muted))
+                    .background(l == p.goal ? Theme.accent : (l == p.current ? .white : (between ? Theme.cardStrong : .clear)),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
             }
             Text("What scouts look for in a \(main.info.short)").font(.subheadline.weight(.bold)).padding(.top, 4)
@@ -230,9 +295,28 @@ struct PathwayHomeView: View {
         }
     }
 
-    private var greeting: String {
-        let h = Calendar.current.component(.hour, from: Date())
-        return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"
+    // MARK: Recent
+
+    private var recent: some View {
+        Panel(title: "Recent sessions", spacing: 0) {
+            ForEach(Array(store.pathwaySessions.prefix(5).enumerated()), id: \.element.id) { i, s in
+                HStack(spacing: 12) {
+                    Image(systemName: s.camera ? "video.fill" : "figure.run")
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(Theme.cardStrong))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(PathwayLibrary.drill(s.drillID)?.name ?? s.drillID).font(.subheadline.weight(.medium)).lineLimit(1)
+                        Text(s.date.formatted(.dateTime.day().month(.abbreviated).year()) + "  |  " + (s.reps > 0 ? "\(s.reps) reps" : "\(s.seconds / 60) min") + (s.flags > 0 ? " · \(s.flags) flags" : ""))
+                            .font(.caption).foregroundStyle(Theme.muted)
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.right").foregroundStyle(.white.opacity(0.7))
+                }
+                .padding(.vertical, 10)
+                if i < min(store.pathwaySessions.count, 5) - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
+            }
+        }
     }
 }
 
@@ -324,7 +408,7 @@ struct PositionsView: View {
                 .padding(20)
             }
             .background(Theme.background)
-            .navigationTitle("Positions")
+            .navigationTitle("POSITIONS")
             .pathwayDestinations()
         }
     }
@@ -353,7 +437,7 @@ struct PositionDetailView: View {
                     ShirtBadge(text: info.short, big: true)
                     VStack(alignment: .leading, spacing: 6) {
                         Kicker(text: info.group.rawValue)
-                        Text(info.name).font(.largeTitle.weight(.black))
+                        Text(info.name.uppercased()).font(.display(42))
                     }
                 }
                 Text(info.summary).font(.body)
@@ -510,7 +594,7 @@ struct PathwayDrillView: View {
                 .buttonStyle(BigButtonStyle(filled: false))
 
                 Kicker(text: "\(drill.level.rawValue) · " + (drill.outfield ? "All outfield" : drill.positions.map(\.info.short).joined(separator: " · ")))
-                Text(drill.name).font(.largeTitle.weight(.black))
+                Text(drill.name.uppercased()).font(.display(40))
                 Text(drill.blurb)
                 FlowChips(items: drill.skills.map(\.name) + drill.needs.map(\.name))
 
@@ -545,7 +629,7 @@ struct PathwayDrillView: View {
 
     private var startPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Kicker(text: "Start training", color: gold)
+            SectionHeader(text: "Start training").padding(.top, 4)
             Picker("How", selection: $camera) {
                 Text("Just train").tag(false)
                 Text("Camera coach").tag(true)
@@ -575,7 +659,8 @@ struct PathwayDrillView: View {
             .buttonStyle(BigButtonStyle())
         }
         .padding(18)
-        .background(Color(red: 0.08, green: 0.2, blue: 0.14), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(NotchedPanelShape().fill(Theme.card))
+        .overlay(NotchedPanelShape().stroke(Theme.line, lineWidth: 1))
     }
 }
 
@@ -676,7 +761,7 @@ struct SelectiveView: View {
                 .background(.ultraThinMaterial)
             }
             .background(Theme.background)
-            .navigationTitle("Selective training")
+            .navigationTitle("SELECTIVE")
             .pathwayDestinations()
         }
     }

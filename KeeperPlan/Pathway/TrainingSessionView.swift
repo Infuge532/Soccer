@@ -276,6 +276,7 @@ struct TrainingSessionView: View {
 }
 
 struct SessionReport: View {
+    @EnvironmentObject var store: Store
     let drill: PathwayDrill
     let result: TrainingSessionView.Finished
     let close: () -> Void
@@ -284,7 +285,8 @@ struct SessionReport: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Kicker(text: result.completed ? "Session complete" : "Session ended early")
-                Text(drill.name).font(.largeTitle.weight(.black))
+                Text(drill.name.uppercased()).font(.display(40))
+                if result.completed, let p = store.profile { levelUp(p) }
                 HStack(spacing: 24) {
                     stat(String(format: "%d:%02d", result.seconds / 60, result.seconds % 60), "time")
                     if result.reps > 0 { stat("\(result.reps)", "reps") }
@@ -331,9 +333,39 @@ struct SessionReport: View {
         }
     }
 
+    /// The card after this session, with the stats it raised lit up.
+    private func levelUp(_ p: PlayerProfile) -> some View {
+        let after = store.cardRatings(for: p)
+        let before = store.cardRatings(for: p, leavingOutLatest: true)
+        let gains = zip(before.stats, after.stats).filter { $1.value > $0.value }.map { ($1.code, $1.value - $0.value) }
+        return VStack(spacing: 14) {
+            PlayerCard(name: p.firstName, ratings: after, width: 200, highlight: Set(gains.map(\.0)))
+                .shadow(color: after.tier.accent.opacity(0.3), radius: 30)
+            if gains.isEmpty {
+                Text("Your card is saved. Stats grow a little with every finished drill, so keep going.")
+                    .font(.subheadline).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
+            } else {
+                HStack(spacing: 8) {
+                    ForEach(gains, id: \.0) { code, gain in
+                        Text("+\(gain) \(code)").font(.display(20)).foregroundStyle(.black)
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    if after.overall > before.overall {
+                        Text("OVR \(after.overall)").font(.display(20))
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(Theme.cardStrong, in: RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.title.weight(.bold).monospacedDigit())
+            Text(value).font(.display(34)).monospacedDigit()
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
     }

@@ -7,43 +7,93 @@ struct OnboardingView: View {
     @State private var draft: PlayerProfile
     @State private var step = 0
     @State private var error = ""
+    @State private var welcome: Bool
     var isEditing = false
 
     init(existing: PlayerProfile? = nil) {
         _draft = State(initialValue: existing ?? PlayerProfile())
+        _welcome = State(initialValue: existing == nil)
         isEditing = existing != nil
     }
 
     private let titles = ["Who's training?", "Where do you play?", "Where are you headed?"]
+    private let subtitles = ["Your name goes on your player card.", "Your main position sets the stats on your card.", "We'll show you what the next level looks for."]
 
     var body: some View {
+        ZStack {
+            if welcome {
+                welcomeScreen.transition(.opacity)
+            } else {
+                form.transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.smooth(duration: 0.4), value: welcome)
+        .tint(Theme.accent)
+        .preferredColorScheme(.dark)
+    }
+
+    private var welcomeScreen: some View {
+        ZStack(alignment: .bottomLeading) {
+            Theme.background
+            StadiumBackdrop(fade: 0.42)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("WELCOME TO KEEPER,\nLET'S GET STARTED")
+                    .font(.display(50))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Build your player card, find drills for your position and train at home. Every finished drill raises your stats.")
+                    .font(.body)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                ArrowSquareButton { welcome = false }
+                    .padding(.top, 14)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 54)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var form: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Kicker(text: "Player profile · step \(step + 1) of 3")
-                    Text(titles[step]).font(.system(size: 38, weight: .black, design: .rounded))
-                    switch step {
-                    case 0: you
-                    case 1: positions
-                    default: level
+                VStack(alignment: .leading, spacing: 0) {
+                    ZStack(alignment: .bottomLeading) {
+                        StadiumBackdrop(fade: 0.35).frame(height: 300)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                ForEach(0..<3) { i in
+                                    Capsule().fill(i <= step ? Theme.accent : Color.white.opacity(0.18)).frame(height: 4)
+                                }
+                            }
+                            .frame(width: 120)
+                            Text(titles[step].uppercased()).font(.display(46)).minimumScaleFactor(0.7).lineLimit(1)
+                            Text(subtitles[step]).foregroundStyle(Theme.muted)
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    if !error.isEmpty { Text(error).foregroundStyle(.red).font(.subheadline.weight(.semibold)) }
-                    HStack {
-                        if step > 0 { Button("Back") { error = ""; step -= 1 }.buttonStyle(BigButtonStyle(filled: false)) }
-                        Button(step == 2 ? (isEditing ? "Save" : "Build my dashboard") : "Next") { next() }
-                            .buttonStyle(BigButtonStyle())
+                    VStack(alignment: .leading, spacing: 18) {
+                        switch step {
+                        case 0: you
+                        case 1: positions
+                        default: level
+                        }
+                        if !error.isEmpty { Text(error).foregroundStyle(.red).font(.subheadline.weight(.semibold)) }
+                        HStack {
+                            if step > 0 { Button("Back") { error = ""; withAnimation { step -= 1 } }.buttonStyle(BigButtonStyle(filled: false)) }
+                            Button(step == 2 ? (isEditing ? "Save" : "Build my card") : "Next") { next() }
+                                .buttonStyle(BigButtonStyle())
+                        }
                     }
+                    .padding(20)
                 }
-                .padding(20)
             }
+            .ignoresSafeArea(edges: .top)
             .scrollDismissesKeyboard(.interactively)
             .background(Theme.background)
             .toolbar {
                 if isEditing { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             }
         }
-        .tint(Theme.accent)
-        .preferredColorScheme(.dark)
     }
 
     private var you: some View {
@@ -52,15 +102,15 @@ struct OnboardingView: View {
             field("Email", $draft.email, .emailAddress, keyboard: .emailAddress)
             field("Phone", $draft.phone, .telephoneNumber, keyboard: .phonePad)
             HStack {
-                Text("AGE GROUP").font(.caption.weight(.semibold).monospaced()).foregroundStyle(.secondary)
+                Text("AGE GROUP").font(.display(15, .bold)).tracking(1).foregroundStyle(Theme.muted)
                 Spacer()
                 Picker("Age group", selection: $draft.age) {
                     ForEach(["U12", "U13", "U14", "U15", "U16", "U17", "U19"], id: \.self) { Text($0) }
                 }
             }
-            .padding(.leading, 12).padding(.vertical, 4)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Text("STRONG FOOT").font(.caption.weight(.semibold).monospaced()).foregroundStyle(.secondary)
+            .padding(.leading, 16).padding(.vertical, 8)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            Text("STRONG FOOT").font(.display(15, .bold)).tracking(1).foregroundStyle(Theme.muted)
             Picker("Strong foot", selection: $draft.foot) {
                 ForEach(["Right", "Left", "Both"], id: \.self) { Text($0) }
             }
@@ -71,14 +121,15 @@ struct OnboardingView: View {
 
     private func field(_ label: String, _ text: Binding<String>, _ type: UITextContentType, keyboard: UIKeyboardType = .default, placeholder: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased()).font(.caption.weight(.semibold).monospaced()).foregroundStyle(.secondary)
+            Text(label.uppercased()).font(.display(15, .bold)).tracking(1).foregroundStyle(Theme.muted)
             TextField(placeholder ?? label, text: text)
                 .textContentType(type)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(type == .name ? .words : .never)
                 .autocorrectionDisabled()
-                .padding(12)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.horizontal, 16).padding(.vertical, 17)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.line))
         }
     }
 
@@ -91,7 +142,7 @@ struct OnboardingView: View {
             PitchPicker(picked: ranks) { spot in pick(spot.code) }
             ForEach(0..<3) { i in
                 HStack {
-                    Text(["MAIN", "SECOND", "THIRD"][i]).font(.caption.weight(.bold).monospaced()).foregroundStyle(.secondary).frame(width: 70, alignment: .leading)
+                    Text(["MAIN", "SECOND", "THIRD"][i]).font(.display(15, .bold)).tracking(1).foregroundStyle(Theme.muted).frame(width: 70, alignment: .leading)
                     Text(Spot.find(order[i])?.label ?? "not set").font(.headline).foregroundStyle(order[i].isEmpty ? .secondary : .primary)
                 }
             }
@@ -124,14 +175,14 @@ struct OnboardingView: View {
 
     private func levelPicker(_ label: String, _ value: Binding<Level>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased()).font(.caption.weight(.semibold).monospaced()).foregroundStyle(.secondary)
+            Text(label.uppercased()).font(.display(15, .bold)).tracking(1).foregroundStyle(Theme.muted)
             Picker(label, selection: value) {
                 ForEach(Level.allCases) { Text($0.name).tag($0) }
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(6)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(10)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
@@ -151,7 +202,7 @@ struct OnboardingView: View {
             return
         }
         error = ""
-        step += 1
+        withAnimation { step += 1 }
     }
 }
 
@@ -167,6 +218,12 @@ struct ProfileView: View {
             Group {
                 if let p = store.profile {
                     List {
+                        Section {
+                            PlayerCard(name: p.firstName, ratings: store.cardRatings(for: p), width: 190)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .listRowBackground(Color.clear)
+                        }
                         Section("Player") {
                             row("Name", p.name); row("Email", p.email); row("Phone", p.phone)
                             row("Age group", p.age); row("Strong foot", p.foot)
@@ -209,7 +266,7 @@ struct ProfileView: View {
                 }
             }
             .background(Theme.background)
-            .navigationTitle("Player profile")
+            .navigationTitle("PLAYER PROFILE")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(isPresented: $editing) { OnboardingView(existing: store.profile) }
             .confirmationDialog("Delete your profile and Pathway sessions from this phone?", isPresented: $confirmDelete, titleVisibility: .visible) {
