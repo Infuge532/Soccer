@@ -84,7 +84,7 @@ struct PathwayHomeView: View {
 
     private func dashboard(_ p: PlayerProfile) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 24) {
                 hero(p)
                 HStack(alignment: .top, spacing: 12) {
                     NavigationLink(value: PathRoute.card) {
@@ -110,10 +110,12 @@ struct PathwayHomeView: View {
 
     private func hero(_ p: PlayerProfile) -> some View {
         ZStack(alignment: .top) {
-            StadiumBackdrop(fade: 0.45).frame(height: 360)
+            StadiumBackdrop(fade: 0.48).frame(height: 368)
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Hi, \(p.firstName)").font(.system(size: 30, weight: .semibold))
+                    Text("Hi, \(p.firstName)")
+                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .tracking(-0.7)
                     HStack(spacing: 5) {
                         Image(systemName: "mappin.circle.fill").foregroundStyle(Theme.accent)
                         Text("\(p.age) · \(p.region) region")
@@ -125,7 +127,7 @@ struct PathwayHomeView: View {
                 CircleIconButton(symbol: "person", dot: true, label: "Player profile") { showProfile = true }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 68)
+            .padding(.top, 64)
         }
     }
 

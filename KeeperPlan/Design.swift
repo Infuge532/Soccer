@@ -50,7 +50,7 @@ struct SectionHeader: View {
 
 /// A rounded panel whose top edge steps down after a raised tab on the left.
 struct NotchedPanelShape: Shape {
-    var radius: CGFloat = 22
+    var radius: CGFloat = 18
     /// How much of the width the raised tab covers.
     var tab: CGFloat = 0.44
     /// How far the rest of the top edge sits below the tab.
@@ -85,7 +85,7 @@ struct Panel<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 18)
-        .padding(.top, 22)
+        .padding(.top, 21)
         .padding(.bottom, 18)
         .background(NotchedPanelShape().fill(Theme.card))
         .overlay(NotchedPanelShape().stroke(Theme.line, lineWidth: 1))
@@ -121,7 +121,7 @@ struct CircleIconButton: View {
             Image(systemName: symbol)
                 .font(.system(size: 19, weight: .medium))
                 .foregroundStyle(.white)
-                .frame(width: 50, height: 50)
+                .frame(width: 48, height: 48)
                 .background(Circle().fill(Theme.card.opacity(0.9)))
                 .overlay(Circle().stroke(Theme.line, lineWidth: 1))
                 .overlay(alignment: .topTrailing) {
