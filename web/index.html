@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pathway — Position Training</title>
+  <meta name="description" content="Position-by-position soccer training for youth players working toward MLS NEXT.">
+  <meta name="theme-color" content="#143D29">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23143D29'/><path d='M8 22 L16 8 L24 22 Z' fill='%23E8582A'/></svg>">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/home"><span class="brand-mark" aria-hidden="true"></span>Pathway</a>
+    <nav class="nav" aria-label="Main">
+      <a data-nav="home" href="#/home"><span class="ni">⌂</span>Dashboard</a>
+      <a data-nav="positions" href="#/positions"><span class="ni">◎</span>Positions</a>
+      <a data-nav="coach" href="#/coach"><span class="ni">✦</span>Selective</a>
+      <a data-nav="profile" href="#/profile"><span class="ni">●</span>Profile</a>
+    </nav>
+  </header>
+  <main id="view" class="view"></main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
