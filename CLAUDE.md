@@ -52,7 +52,9 @@ A SwiftUI iPhone app for a youth goalkeeper training at home. **There is no sche
 
 ## Testing on a Mac
 
-- Build and run the KeeperPlan scheme on an iPhone simulator in Xcode.
+- **Run `./run.sh`.** It builds the app and launches it in an iPhone simulator, so nobody has to open Xcode. Xcode must be installed (Mac App Store), but the script handles its first-launch setup, the license and the simulator download. It needs no Apple ID or signing team. Extra arguments go to the app, e.g. `./run.sh -showDrill dv-kneel`. Set `KEEPER_SIM=<udid>` to pick a simulator.
+- When the user asks to "run the app" or "show me", use `./run.sh`. If the build fails, read the error and fix it.
+- Running on a real iPhone still needs a signing team, set once in Xcode.
 - Debug-only launch arguments (useful for screenshots): `-gallery <page>` shows the 3D demo gallery, `-scrollDrills` scrolls the drill list, and `-showDrill <id>` opens one drill.
 
 ## `web/`
