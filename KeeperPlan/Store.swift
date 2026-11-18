@@ -47,6 +47,9 @@ struct AppData: Codable {
     var catches: [CatchEntry] = []
     var reminders = ReminderSettings()
     var settings = AppSettings()
+    /// Pathway (every position). Optional so older saved data still decodes.
+    var profile: PlayerProfile?
+    var pathwaySessions: [PathwaySession]?
 }
 
 final class Store: ObservableObject {
