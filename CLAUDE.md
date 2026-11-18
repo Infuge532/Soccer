@@ -16,8 +16,31 @@ A SwiftUI iPhone app for a youth goalkeeper training at home. **There is no sche
 
 - **Focuses** (`Focus` in `Drills.swift`): diving, handling, shot stopping, distribution, footwork, crosses & high balls, 1v1s, reactions, positioning, power.
 - **Setup toggles** (`Need` / `Setup`): Outside, Goal, Partner, Wall. A drill is shown only if every one of its `needs` is switched on.
-- Tabs: **Train**, **Progress**, **Settings** (reminders).
-- Dark theme only. The accent is lime green (`Theme` in `KeeperPlanApp.swift`).
+- Tabs: **Home**, **Positions**, **Selective**, **Keeper** (the original Train screen), **Progress**. Reminders and settings, plus the player profile, open from the profile button on Home.
+- Dark theme only. The accent is lime green (`Theme` in `KeeperPlanApp.swift`). Headings use the condensed display font (`Font.display`) and sections use `Panel` from `Design.swift`.
+- **Player card:** each stat starts from the player's latest test results (or 50 plus a little for their level). Training adds at most a quarter of the gap to 99, slowly, on purpose. Retired tests stay in the `StatTest` enum so old saved results still decode; only `StatTest.active` is shown and scored.
+
+## Pathway (every position)
+
+Pathway is the all-positions part of the app, ported from the `web/` prototype. It is for youth players working toward MLS NEXT. The files are in `KeeperPlan/Pathway/`.
+
+- **Profile onboarding** shows full screen until a profile exists. It collects name, email, phone, age group and strong foot. Main, second and third positions are picked on a pitch. Then the current level (with a team/division text such as "N1"), the goal level and the region. Saved in `AppData.profile`.
+- **Home** suggests today's drills: a warm-up, two focus-skill drills, one for the second position, and a finisher. It rotates daily and is only a suggestion. It is not a schedule: there are no weekly plans or rest days, and the Keeper tab keeps its pick-a-focus rule.
+- **Positions** covers 11 roles: how pros play each one, how to tune it for MLS NEXT, and its drills.
+- **Selective**: the player types a problem and gets tappable drill options back, never advice text. The parser is on-device (`SelectiveCoach` in `PathwayModel.swift`).
+- **Sessions** run as reps or timed, with on-screen cues, a metronome and voice. The **camera coach** uses Apple Vision body pose to flag form mistakes and records the drill with AVAssetWriter. All of it stays on the phone. The simulator has no camera, so test the camera coach on a real iPhone.
+
+| File | What it holds |
+| --- | --- |
+| `PathwayLibrary.swift` | `Skill`, `Position` (with all coaching text), `Spot`, `Level`, `PathwayDrill` and the 43 drills with their board animations. First generated from `web/js/*.js`; edit the Swift now. |
+| `PathwayModel.swift` | `PlayerProfile`, `PathwaySession`, today's plan, `SelectiveCoach` |
+| `PathwayViews.swift` | Home, positions, drill page, Selective |
+| `ProfileViews.swift` | Onboarding and the profile sheet |
+| `TacticsBoard.swift` | The animated top-down drill board and the pitch position picker |
+| `TrainingSessionView.swift` | The session screen and the report |
+| `CameraCoach.swift` | Camera, Vision pose checks, recording |
+
+Debug launch arguments: `-seedProfile` fills in a sample player, and `-tab <n>` opens a tab.
 
 ## Project facts
 
@@ -42,6 +65,9 @@ A SwiftUI iPhone app for a youth goalkeeper training at home. **There is no sche
 | `Reminders.swift`, `RemindersView.swift` | Training-time notifications and the Settings tab |
 | `Alarms.swift` | Real alarms through AlarmKit (iOS 26.1+ only, behind `@available`) |
 | `WorkoutSupport.swift` | Voice callouts, video clips, the demo area |
+| `Design.swift` | The look: condensed display font, `Panel` (notched section), stadium backdrop (uses an asset named `Stadium` if one exists), buttons and pills |
+| `PlayerCard.swift` | The player card: six stats + overall, tiers (bronze/silver/gold/elite), how ratings are worked out, the card screen |
+| `StatTests.swift` | Real test results (sprints, jumps, lifts) that set card stats, age-adjusted benchmark ladders, and the test entry screens |
 | `../KeeperWidget/KeeperWidget.swift` | Home-screen widget showing days trained and today's focus |
 
 ## Common changes
@@ -59,4 +85,4 @@ A SwiftUI iPhone app for a youth goalkeeper training at home. **There is no sche
 
 ## `web/`
 
-A separate static web prototype ("Pathway") for every position on the pitch, not just keepers. It has its own `web/README.md`. Run it with `python3 -m http.server 5179 --directory web`. It is plain JavaScript and runs on Windows too.
+The original static web prototype of Pathway. It is kept for reference, but the iOS app is now where Pathway work happens. It has its own `web/README.md`.

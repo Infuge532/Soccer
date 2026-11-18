@@ -69,9 +69,9 @@ struct TrainView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Date().formatted(.dateTime.weekday(.wide).month().day()))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text("Today's training")
-                    .font(.largeTitle.bold())
+                    .foregroundStyle(Theme.muted)
+                Text("TODAY'S TRAINING")
+                    .font(.display(44))
             }
             Spacer()
             HStack(spacing: 6) {
@@ -223,7 +223,7 @@ struct TrainView: View {
 private struct SectionTitle: View {
     let text: String
     var body: some View {
-        Text(text).font(.title3.bold())
+        Text(text.uppercased()).font(.display(24)).foregroundStyle(Theme.accent)
     }
 }
 
@@ -327,8 +327,8 @@ private struct FocusSection: View {
 
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label(focus.name, systemImage: focus.symbol)
-                    .font(.title3.bold())
+                Label(focus.name.uppercased(), systemImage: focus.symbol)
+                    .font(.display(24))
                 Spacer()
                 Text("\(done)/\(fits.count)")
                     .font(.subheadline.weight(.semibold))

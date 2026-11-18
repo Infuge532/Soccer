@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera coach records your drill and checks your form on this phone. Video never leaves the device unless you share it.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save your training videos to Photos.</string>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Keeper sets an alarm at your training time so you never miss a session.</string>
 </dict>

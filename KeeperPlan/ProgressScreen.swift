@@ -11,6 +11,13 @@ struct ProgressScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if let p = store.profile {
+                        let r = store.cardRatings(for: p)
+                        PlayerCard(name: p.firstName, ratings: r, width: 210)
+                            .shadow(color: r.tier.accent.opacity(0.2), radius: 30)
+                            .padding(.vertical, 8)
+                        CardBreakdown(ratings: r)
+                    }
                     stats
                     calendar
                     focusChart
@@ -21,7 +28,7 @@ struct ProgressScreen: View {
                 .padding(16)
             }
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Progress")
+            .navigationTitle("PROGRESS")
         }
     }
 
@@ -206,7 +213,7 @@ private struct StatTile: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(.display(38))
                 .monospacedDigit()
                 .foregroundStyle(Theme.accent)
             Text(label)
@@ -216,7 +223,8 @@ private struct StatTile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 84)
         .padding(.vertical, 10)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.line))
     }
 }
 
