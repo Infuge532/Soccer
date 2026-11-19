@@ -192,7 +192,9 @@ struct StadiumBackdrop: View {
     var body: some View {
         ZStack {
             if let photo = UIImage(named: "Stadium") {
-                Image(uiImage: photo).resizable().scaledToFill()
+                // Overlay on a clear view so the photo fills the space it's given
+                // without making the whole screen wider than the phone.
+                Color.clear.overlay(Image(uiImage: photo).resizable().scaledToFill())
             } else {
                 Canvas { ctx, size in StadiumArt.draw(&ctx, size) }
             }

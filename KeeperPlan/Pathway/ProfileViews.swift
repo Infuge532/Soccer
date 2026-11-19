@@ -33,24 +33,29 @@ struct OnboardingView: View {
     }
 
     private var welcomeScreen: some View {
-        ZStack(alignment: .bottomLeading) {
-            Theme.background
-            StadiumBackdrop(fade: 0.42)
-            VStack(alignment: .leading, spacing: 16) {
-                Text("WELCOME TO KEEPER,\nLET'S GET STARTED")
-                    .font(.display(50))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Build your player card, find drills for your position and train at home. Every finished drill raises your stats.")
-                    .font(.body)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                ArrowSquareButton { welcome = false }
-                    .padding(.top, 14)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 54)
+        VStack(alignment: .leading, spacing: 16) {
+            Spacer(minLength: 0)
+            Text("WELCOME TO KEEPER,\nLET'S GET STARTED")
+                .font(.display(50))
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
+            Text("Build your player card, find drills for your position and train at home. Every finished drill raises your stats.")
+                .font(.body)
+                .foregroundStyle(Theme.muted)
+                .minimumScaleFactor(0.8)
+            ArrowSquareButton { welcome = false }
+                .padding(.top, 14)
         }
-        .ignoresSafeArea()
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        .background {
+            ZStack {
+                Theme.background
+                StadiumBackdrop(fade: 0.42)
+            }
+            .ignoresSafeArea()
+        }
     }
 
     private var form: some View {
